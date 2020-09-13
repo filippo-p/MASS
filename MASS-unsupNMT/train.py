@@ -21,7 +21,7 @@ from src.model import check_model_params, build_model
 from src.trainer import SingleTrainer, EncDecTrainer
 from src.evaluation.evaluator import SingleEvaluator, EncDecEvaluator
 
-import apex
+# import apex
 from src.fp16 import network_to_half
 
 
@@ -250,13 +250,13 @@ def main(params):
             decoder = network_to_half(decoder)
 
     # distributed
-    if params.multi_gpu:
-        logger.info("Using nn.parallel.DistributedDataParallel ...")
-        if params.encoder_only:
-            model = apex.parallel.DistributedDataParallel(model, delay_allreduce=True)
-        else:
-            encoder = apex.parallel.DistributedDataParallel(encoder, delay_allreduce=True)
-            decoder = apex.parallel.DistributedDataParallel(decoder, delay_allreduce=True)
+    # if params.multi_gpu:
+    #     logger.info("Using nn.parallel.DistributedDataParallel ...")
+    #     if params.encoder_only:
+    #         model = apex.parallel.DistributedDataParallel(model, delay_allreduce=True)
+    #     else:
+    #         encoder = apex.parallel.DistributedDataParallel(encoder, delay_allreduce=True)
+    #         decoder = apex.parallel.DistributedDataParallel(decoder, delay_allreduce=True)
 
     # build trainer, reload potential checkpoints / build evaluator
     if params.encoder_only:

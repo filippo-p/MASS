@@ -18,7 +18,7 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 from torch.nn.utils import clip_grad_norm_
-from apex.fp16_utils import FP16_Optimizer
+# from apex.fp16_utils import FP16_Optimizer
 
 from .utils import get_optimizer, to_cuda, concat_batches
 from .utils import parse_lambda_config, update_lambdas
@@ -108,8 +108,8 @@ class Trainer(object):
         """
         assert module in ['model', 'encoder', 'decoder']
         optimizer = get_optimizer(getattr(self, module).parameters(), self.params.optimizer)
-        if self.params.fp16:
-            optimizer = FP16_Optimizer(optimizer, dynamic_loss_scale=True)
+        # if self.params.fp16:
+        #     optimizer = FP16_Optimizer(optimizer, dynamic_loss_scale=True)
         return optimizer
 
     def optimize(self, loss, modules):
@@ -130,8 +130,9 @@ class Trainer(object):
 
         # backward
         if self.params.fp16:
-            assert len(modules) == 1, "fp16 not implemented for more than one module"
-            self.optimizers[module].backward(loss)
+            # assert len(modules) == 1, "fp16 not implemented for more than one module"
+            # self.optimizers[module].backward(loss)
+            loss.backward()
         else:
             loss.backward()
 
@@ -139,7 +140,8 @@ class Trainer(object):
         if self.params.clip_grad_norm > 0:
             for module in modules:
                 if self.params.fp16:
-                    self.optimizers[module].clip_master_grads(self.params.clip_grad_norm)
+                    # self.optimizers[module].clip_master_grads(self.params.clip_grad_norm)
+                    clip_grad_norm_(getattr(self, module).parameters(), self.params.clip_grad_norm)
                 else:
                     clip_grad_norm_(getattr(self, module).parameters(), self.params.clip_grad_norm)
 
@@ -358,14 +360,14 @@ class Trainer(object):
         pred_mask[0] = 0  # TODO: remove
 
         # mask a number of words == 0 [8] (faster with fp16)
-        if params.fp16:
-            pred_mask = pred_mask.view(-1)
-            n1 = pred_mask.sum().item()
-            n2 = max(n1 % 8, 8 * (n1 // 8))
-            if n2 != n1:
-                pred_mask[torch.nonzero(pred_mask).view(-1)[:n1 - n2]] = 0
-            pred_mask = pred_mask.view(slen, bs)
-            assert pred_mask.sum().item() % 8 == 0
+        # if params.fp16:
+        #     pred_mask = pred_mask.view(-1)
+        #     n1 = pred_mask.sum().item()
+        #     n2 = max(n1 % 8, 8 * (n1 // 8))
+        #     if n2 != n1:
+        #         pred_mask[torch.nonzero(pred_mask).view(-1)[:n1 - n2]] = 0
+        #     pred_mask = pred_mask.view(slen, bs)
+        #     assert pred_mask.sum().item() % 8 == 0
 
         # generate possible targets / update x input
         _x_real = x[pred_mask]
@@ -531,8 +533,8 @@ class Trainer(object):
         so that each dimension is a multiple of 8.
         """
         params = self.params
-        if not params.fp16 or len(lengths) < 8:
-            return x, lengths, positions, langs, None
+        # if not params.fp16 or len(lengths) < 8:
+        #     return x, lengths, positions, langs, None
 
         # number of sentences == 0 [8]
         bs1 = len(lengths)
